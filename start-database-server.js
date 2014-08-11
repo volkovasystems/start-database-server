@@ -4,6 +4,7 @@
 
 		Copyright (c) 2014 Regynald Reiner Ventura
 		Copyright (c) 2014 Richeve Siodina Bebedor
+		Copyright (c) 2014 Jann Paolo Caña
 
 		Permission is hereby granted, free of charge, to any person obtaining a copy
 		of this software and associated documentation files (the "Software"), to deal
@@ -26,9 +27,9 @@
 
 	@module-configuration:
 		{
-			"packageName": "burrow-app/task for 08-06-2014",
-			"fileName": "start-database.js",
-			"moduleName": "startDatabase",
+			"packageName": "start-database-server",
+			"fileName": "start-database-server.js",
+			"moduleName": "startDatabaseServer",
 			"authorName": "Regynald Reiner Ventura",
 			"authorEMail": "regynaldventura@gmail.com",
 			"contributorList": [
@@ -41,8 +42,8 @@
 					"contributorEMail": "paolo.garcia00@yahoo.com"					
 				}
 			],
-			"repository": "git@github.com:volkovasystems/burrow-app.git",
-			"testCase": "start-database-test.js",
+			"repository": "git@github.com:volkovasystems/start-database-server.git",
+			"testCase": "start-database-server-test.js",
 			"isGlobal": true
 		}
 	@end-module-configuration
@@ -53,12 +54,14 @@
 
 	@include:
 		{			
-			"child_process@nodejs": "util"
+			"work.js@github.com/volkovasystems": "work",
+			"fs@nodejs": "fs",
+			"util@nodejs": "util",
+			"path@nodejs": "path"
 		}
 	@end-include
 */
-
-var startDatabase = function startDatabase( host, port, databasePath, callback ){
+var startDatabaseServer = function startDatabaseServer( host, port, databasePath, callback ){
 	/*:
 		@meta-configuration:
 			{
@@ -73,17 +76,80 @@ var startDatabase = function startDatabase( host, port, databasePath, callback )
 	//NOOP override.
 	callback = callback || function( ){ };
 
-	cmd.stdout.on( "data",
-		function ( data ){
-			console.log( "" + data );
-		} );
+	if( !fs.existSync( databasePath ) ){
+		try{
+			fs.mkdirSync( databasePath );
 
-	cmd.stdin.write( "mongod --rest --bind_ip " + host + " --port " + port + " --dbpath \"" + databasePath + "\"" + " \n" );
-	cmd.stdin.end( );
-	callback ();
+		}catch( error ){
+			console.error( error );
+			throw error;
+		}
+	}
+
+	var databaseLogPath = [ databasePath, "log" ].join( path.sep );
+	if( !fs.existSync( databaseLogPath ) ){
+		try{
+			fs.writeFileSync( databasePath, "" );
+
+		}catch( error ){
+			console.error( error );
+			throw error;
+		}
+	}
+
+	var mongoDBServerCommand = [
+		"mongod",
+		"--bind_ip", host,
+		"--port", port,
+		"--dbpath", databasePath,
+		"--logpath", databaseLogPath,
+		"--logappend"
+	].join( " " );
+
+	var checkMongoDBServerCommand = [
+		"mongo",
+		"--host", host,
+		"--port", port,
+		"--quiet",
+		"--eval", "'JSON.stringify( db.stats( ) );'"
+	].join( " " );
+
+	work( mongoDBServerCommand,
+		function onResult( error, isValid, result ){
+			if( error ){
+				console.error( error );
+				callback( error );
+
+			}else if( isValid ){
+				var databaseStatistic = JSON.parse( result );
+
+				var encodedValue = new Buffer( util.inspect( databaseStatistic, { "depth": null } ) ).toString( "base64" );
+				console.log( encodedValue );
+
+				callback( null, databaseStatistic );
+
+			}else{
+				var error = new Error( "invalid result" );
+				console.error( error );
+				callback( error );
+			}
+		},
+		function validator( output ){
+			try{
+				JSON.parse( output );
+				return true;
+
+			}catch( error ){
+				console.error( error );
+				return false;
+			}	
+		} );
 };
 
-var cmd = require( "child_process" ).spawn( "cmd" );
+var work = require( "./work/work.js" );
+var fs = require( "fs" );
+var util = require( "util" );
+var path = require( "path" );
 
 exports.startDatabase = startDatabase;
 
