@@ -55,6 +55,7 @@
 	@include:
 		{			
 			"work.js@github.com/volkovasystems": "work",
+			"chore.js@github.com/volkovasystems": "chore",
 			"fs@nodejs": "fs",
 			"util@nodejs": "util",
 			"path@nodejs": "path"
@@ -103,7 +104,8 @@ var startDatabaseServer = function startDatabaseServer( host, port, databasePath
 		"--port", port,
 		"--dbpath", databasePath,
 		"--logpath", databaseLogPath,
-		"--logappend"
+		"--logappend",
+		"--install"
 	].join( " " );
 
 	var checkMongoDBServerCommand = [
@@ -142,7 +144,7 @@ var startDatabaseServer = function startDatabaseServer( host, port, databasePath
 			}catch( error ){
 				console.error( error );
 				return false;
-			}	
+			}
 		} );
 };
 
