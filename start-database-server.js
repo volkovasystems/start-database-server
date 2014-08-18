@@ -77,7 +77,7 @@ var startDatabaseServer = function startDatabaseServer( host, port, databasePath
 	//NOOP override.
 	callback = callback || function( ){ };
 
-	if( !fs.existSync( databasePath ) ){
+	if( !fs.existsSync( databasePath ) ){
 		try{
 			fs.mkdirSync( databasePath );
 
@@ -88,9 +88,9 @@ var startDatabaseServer = function startDatabaseServer( host, port, databasePath
 	}
 
 	var databaseLogPath = [ databasePath, "log" ].join( path.sep );
-	if( !fs.existSync( databaseLogPath ) ){
+	if( !fs.existsSync( databaseLogPath ) ){
 		try{
-			fs.writeFileSync( databasePath, "" );
+			fs.writeFileSync( [databaseLogPath, "log.txt"].join( path.sep ) );
 
 		}catch( error ){
 			console.error( error );
@@ -153,5 +153,4 @@ var fs = require( "fs" );
 var util = require( "util" );
 var path = require( "path" );
 
-exports.startDatabase = startDatabase;
-
+module.exports = startDatabaseServer;
